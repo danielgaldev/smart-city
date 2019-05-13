@@ -7,178 +7,501 @@ import jason.environment.grid.Location;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
-import java.util.Random;
+import java.awt.GridLayout;
 import java.util.logging.Logger;
 
 public class MarsEnv extends Environment {
 
-    public static final int GSize = 7; // grid size
-    public static final int GARB  = 16; // garbage code in grid model
+    public static final int CrossSize = 12;
 
-    public static final Term    ns = Literal.parseLiteral("next(slot)");
-    public static final Term    pg = Literal.parseLiteral("pick(garb)");
-    public static final Term    dg = Literal.parseLiteral("drop(garb)");
-    public static final Term    bg = Literal.parseLiteral("burn(garb)");
-    public static final Literal g1 = Literal.parseLiteral("garbage(r1)");
-    public static final Literal g2 = Literal.parseLiteral("garbage(r2)");
+    private CrossModel model;
+    private CrossView view;
+
+    public boolean lamp1;
+    public boolean lamp2;
+    public boolean lamp3;
+    public boolean lamp4;
+
+    public boolean lampoff1;
+    public boolean lampoff2;
+    public boolean lampoff3;
+    public boolean lampoff4;
 
     static Logger logger = Logger.getLogger(MarsEnv.class.getName());
 
-    private MarsModel model;
-    private MarsView  view;
+    public static final Term switch1 = Literal.parseLiteral("switch1");
+    public static final Term switch2 = Literal.parseLiteral("switch2");
+    public static final Term switch3 = Literal.parseLiteral("switch3");
+    public static final Term switch4 = Literal.parseLiteral("switch4");
+
+    public static final Term turnoff1 = Literal.parseLiteral("turnoff1");
+    public static final Term turnoff2 = Literal.parseLiteral("turnoff2");
+    public static final Term turnoff3 = Literal.parseLiteral("turnoff3");
+    public static final Term turnoff4 = Literal.parseLiteral("turnoff4");
+
+    public static final Term moveped = Literal.parseLiteral("move(pedestrian)");
+    public static final Term movecar1 = Literal.parseLiteral("move(car1)");
+    public static final Term movecar2 = Literal.parseLiteral("move(car2)");
+    public static final Term movecar3 = Literal.parseLiteral("move(car3)");
+    public static final Term movecar4 = Literal.parseLiteral("move(car4)");
+    public static final Term movenino = Literal.parseLiteral("move(nino)");
 
     @Override
     public void init(String[] args) {
-        model = new MarsModel();
-        view  = new MarsView(model);
+        model = new CrossModel();
+        view = new CrossView(model);
         model.setView(view);
-        updatePercepts();
+
+        lamp1 = true;
+        lamp2 = false;
+        lamp3 = true;
+        lamp4 = false;
+
+        lampoff1 = true;
+        lampoff2 = true;
+        lampoff3 = true;
+        lampoff4 = true;
+
     }
 
     @Override
-    public boolean executeAction(String ag, Structure action) {
-        logger.info(ag+" doing: "+ action);
+    public boolean executeAction(String agName, Structure action) {
+
+        logger.info(agName + " doing: " + action);
+
         try {
-            if (action.equals(ns)) {
-                model.nextSlot();
-            } else if (action.getFunctor().equals("move_towards")) {
-                int x = (int)((NumberTerm)action.getTerm(0)).solve();
-                int y = (int)((NumberTerm)action.getTerm(1)).solve();
-                model.moveTowards(x,y);
-            } else if (action.equals(pg)) {
-                model.pickGarb();
-            } else if (action.equals(dg)) {
-                model.dropGarb();
-            } else if (action.equals(bg)) {
-                model.burnGarb();
-            } else {
-                return false;
+
+            if (action.equals(switch1)) {
+                lamp1 = !lamp1;
+                lampoff1 = false;
+                model.switchLamp1();
+            } else if (action.equals(switch2)) {
+                lamp2 = !lamp2;
+                lampoff2 = false;
+                model.switchLamp2();
+
+            } else if (action.equals(switch3)) {
+                lamp3 = !lamp3;
+                lampoff3 = false;
+                model.switchLamp3();
+
+            } else if (action.equals(switch4)) {
+                lamp4 = !lamp4;
+                lampoff4 = false;
+                model.switchLamp4();
+
+            } else if (action.equals(moveped)) {
+                model.movePedastrian();
+            } else if (action.equals(movecar1)) {
+                model.moveCar1();
+            } else if (action.equals(movecar2)) {
+                model.moveCar2();
+            } else if (action.equals(movecar3)) {
+                model.moveCar3();
+            } else if (action.equals(movecar4)) {
+                model.moveCar4();
+            } else if (action.equals(turnoff1)) {
+                lampoff1 = true;
+            } else if (action.equals(turnoff2)) {
+                lampoff2 = true;
+            } else if (action.equals(turnoff3)) {
+                lampoff3 = true;
+            } else if (action.equals(turnoff4)) {
+                lampoff4 = true;
+            } else if (action.equals(movenino)) {
+                model.moveNino();
             }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        updatePercepts();
-
         try {
-            Thread.sleep(200);
-        } catch (Exception e) {}
+            Thread.sleep(700);
+        } catch (Exception e) {
+        }
         informAgsEnvironmentChanged();
         return true;
+
     }
 
-    /** creates the agents perception based on the MarsModel */
-    void updatePercepts() {
-        clearPercepts();
+    void ninoArrived() {
 
-        Location r1Loc = model.getAgPos(0);
-        Location r2Loc = model.getAgPos(1);
+        Literal arr = Literal.parseLiteral("ninoarrived");
 
-        Literal pos1 = Literal.parseLiteral("pos(r1," + r1Loc.x + "," + r1Loc.y + ")");
-        Literal pos2 = Literal.parseLiteral("pos(r2," + r2Loc.x + "," + r2Loc.y + ")");
-
-        addPercept(pos1);
-        addPercept(pos2);
-
-        if (model.hasObject(GARB, r1Loc)) {
-            addPercept(g1);
-        }
-        if (model.hasObject(GARB, r2Loc)) {
-            addPercept(g2);
-        }
+        addPercept("nino", arr);
+        informAgsEnvironmentChanged();
     }
 
-    class MarsModel extends GridWorldModel {
+    void ninoComing() {
 
-        public static final int MErr = 2; // max error in pick garb
-        int nerr; // number of tries of pick garb
-        boolean r1HasGarb = false; // whether r1 is carrying garbage or not
+        Literal com = Literal.parseLiteral("ninocoming");
 
-        Random random = new Random(System.currentTimeMillis());
+        addPercept("nino", com);
+        informAgsEnvironmentChanged();
+    }
 
-        private MarsModel() {
-            super(GSize, GSize, 2);
+    @Override
+    public void stop() {
+        super.stop();
+    }
 
-            // initial location of agents
+    class CrossModel extends GridWorldModel {
+
+        private CrossModel() {
+            super(CrossSize, CrossSize, 10);
+
             try {
-                setAgPos(0, 0, 0);
 
-                Location r2Loc = new Location(GSize/2, GSize/2);
-                setAgPos(1, r2Loc);
+                // pedastrian
+                setAgPos(0, 4, 8);
+                // car1
+                setAgPos(1, 0, 6);
+                // car2
+                setAgPos(2, 5, 0);
+                // car3
+                setAgPos(3, 6, 11);
+                // car4
+                setAgPos(4, 11, 5);
+                // lamp1
+                setAgPos(5, 4, 7);
+                // lamp2
+                setAgPos(6, 4, 4);
+                // lamp3
+                setAgPos(7, 7, 4);
+                // lamp4
+                setAgPos(8, 7, 7);
+                // nino
+                setAgPos(9, 10, 4);
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
-            // initial location of garbage
-            add(GARB, 3, 0);
-            add(GARB, GSize-1, 0);
-            add(GARB, 1, 2);
-            add(GARB, 0, GSize-2);
-            add(GARB, GSize-1, GSize-1);
         }
 
-        void nextSlot() throws Exception {
-            Location r1 = getAgPos(0);
-            r1.x++;
-            if (r1.x == getWidth()) {
-                r1.x = 0;
-                r1.y++;
+        void movePedastrian() {
+            Location loc;
+            loc = getAgPos(0);
+
+            if (loc.y == 8 && loc.x >= 3 && loc.x < 8 && !getAgPos(1).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(2).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(3).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(4).equals(new Location(loc.x + 1, loc.y))) {
+                loc.x++;
+            } else if (loc.x == 8 && loc.y <= 8 && loc.y > 3 && !getAgPos(1).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(2).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(3).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(4).equals(new Location(loc.x, loc.y - 1))) {
+                loc.y--;
+            } else if (loc.y == 3 && loc.x > 3 && loc.x <= 8 && !getAgPos(1).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(2).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(3).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(4).equals(new Location(loc.x - 1, loc.y))) {
+                loc.x--;
+            } else if (loc.x == 3 && loc.y < 8 && loc.y >= 3 && !getAgPos(1).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(2).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(3).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(4).equals(new Location(loc.x, loc.y + 1))) {
+                loc.y++;
             }
-            // finished searching the whole grid
-            if (r1.y == getHeight()) {
-                return;
+
+            setAgPos(0, loc);
+        }
+
+        void moveCar1() {
+            Location loc;
+            loc = getAgPos(1);
+            if (loc.y == 6 && loc.x >= 0 && loc.x <= 10 && loc.x != 4
+                    && !getAgPos(0).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(2).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(3).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(4).equals(new Location(loc.x + 1, loc.y))) {
+                loc.x++;
+            } else if (loc.y == 5 && loc.x >= 1 && loc.x <= 11 && loc.x != 7
+                    && !getAgPos(0).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(2).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(3).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(4).equals(new Location(loc.x - 1, loc.y))) {
+                loc.x--;
+            } else if (loc.x == 11 && loc.y == 6 && !getAgPos(0).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(2).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(3).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(4).equals(new Location(loc.x, loc.y - 1))) {
+                loc.y = 5;
+            } else if (loc.x == 0 && loc.y == 5 && !getAgPos(0).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(2).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(3).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(4).equals(new Location(loc.x, loc.y + 1))) {
+                loc.y = 6;
+            } else if (loc.x == 4 && loc.y == 6 && lampoff1 && !getAgPos(0).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(2).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(3).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(4).equals(new Location(loc.x + 1, loc.y)) && !getAgPos(0).equals(new Location(6, 7))
+                    && !getAgPos(2).equals(new Location(6, 7)) && !getAgPos(3).equals(new Location(6, 7))
+                    && !getAgPos(4).equals(new Location(6, 7))) {
+                loc.x++;
+
+            } else if (loc.x == 7 && loc.y == 5 && lampoff3 && !getAgPos(0).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(2).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(3).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(4).equals(new Location(loc.x - 1, loc.y)) && !getAgPos(0).equals(new Location(5, 4))
+                    && !getAgPos(2).equals(new Location(5, 4)) && !getAgPos(3).equals(new Location(5, 4))
+                    && !getAgPos(4).equals(new Location(5, 4))) {
+                loc.x--;
+
+            } else if (loc.y == 6 && loc.x == 4 && lamp1 && !getAgPos(2).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(0).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(3).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(4).equals(new Location(loc.x + 1, loc.y))) {
+                loc.x++;
+            } else if (loc.y == 5 && loc.x == 7 && lamp3 && !getAgPos(2).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(0).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(3).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(4).equals(new Location(loc.x - 1, loc.y))) {
+                loc.x--;
             }
-            setAgPos(0, r1);
-            setAgPos(1, getAgPos(1)); // just to draw it in the view
+            setAgPos(1, loc);
         }
 
-        void moveTowards(int x, int y) throws Exception {
-            Location r1 = getAgPos(0);
-            if (r1.x < x)
-                r1.x++;
-            else if (r1.x > x)
-                r1.x--;
-            if (r1.y < y)
-                r1.y++;
-            else if (r1.y > y)
-                r1.y--;
-            setAgPos(0, r1);
-            setAgPos(1, getAgPos(1)); // just to draw it in the view
-        }
-
-        void pickGarb() {
-            // r1 location has garbage
-            if (model.hasObject(GARB, getAgPos(0))) {
-                // sometimes the "picking" action doesn't work
-                // but never more than MErr times
-                if (random.nextBoolean() || nerr == MErr) {
-                    remove(GARB, getAgPos(0));
-                    nerr = 0;
-                    r1HasGarb = true;
-                } else {
-                    nerr++;
+        void moveCar2() {
+            Location loc;
+            loc = getAgPos(2);
+            if (loc.x == 5 && loc.y >= 0 && loc.y <= 10 && loc.y != 4
+                    && !getAgPos(3).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(1).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(4).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(0).equals(new Location(loc.x, loc.y + 1))) {
+                loc.y++;
+            } else if (loc.x == 6 && loc.y >= 1 && loc.y <= 11 && loc.y != 7
+                    && !getAgPos(3).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(1).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(4).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(0).equals(new Location(loc.x, loc.y - 1))) {
+                loc.y--;
+            } else if (loc.x == 5 && loc.y == 11 && !getAgPos(1).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(3).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(4).equals(new Location(loc.x + 1, loc.y))) {
+                loc.x = 6;
+            } else if (loc.x == 6 && loc.y == 0 && !getAgPos(1).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(3).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(4).equals(new Location(loc.x - 1, loc.y))) {
+                loc.x = 5;
+            } else if (loc.x == 5 && loc.y == 4 && lampoff2) {
+                if (!getAgPos(1).equals(new Location(loc.x, loc.y + 1))
+                        && !getAgPos(3).equals(new Location(loc.x, loc.y + 1))
+                        && !getAgPos(0).equals(new Location(loc.x, loc.y + 1))
+                        && !getAgPos(4).equals(new Location(loc.x, loc.y + 1))
+                        && !getAgPos(1).equals(new Location(4, 6)) && !getAgPos(3).equals(new Location(4, 6))
+                        && !getAgPos(4).equals(new Location(4, 6))) {
+                    loc.y++;
                 }
+            } else if (loc.x == 6 && loc.y == 7 && lampoff4 && !getAgPos(1).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(3).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(4).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(0).equals(new Location(loc.x, loc.y - 1)) && !getAgPos(1).equals(new Location(7, 5))
+                    && !getAgPos(3).equals(new Location(7, 5)) && !getAgPos(4).equals(new Location(7, 5))) {
+                loc.y--;
+
+            } else if (loc.y == 4 && loc.x == 5 && lamp2 && !getAgPos(1).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(3).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(4).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(0).equals(new Location(loc.x, loc.y + 1))) {
+                loc.y++;
+            } else if (loc.y == 7 && loc.x == 6 && lamp4 && !getAgPos(1).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(3).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(4).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(0).equals(new Location(loc.x, loc.y - 1))) {
+                loc.y--;
             }
+
+            setAgPos(2, loc);
         }
-        void dropGarb() {
-            if (r1HasGarb) {
-                r1HasGarb = false;
-                add(GARB, getAgPos(0));
+
+        void moveCar3() {
+            Location loc;
+            loc = getAgPos(3);
+
+            if (loc.x == 6 && loc.y >= 6 && loc.y <= 11 && loc.y != 7
+                    && !getAgPos(1).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(0).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(4).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(2).equals(new Location(loc.x, loc.y - 1))) {
+                loc.y--;
+            } else if (loc.x <= 6 && loc.x >= 1 && loc.y == 5 && !getAgPos(1).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(0).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(4).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(2).equals(new Location(loc.x - 1, loc.y))) {
+                loc.x--;
+            } else if (loc.x >= 0 && loc.x <= 3 && loc.y == 6 && !getAgPos(1).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(0).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(4).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(2).equals(new Location(loc.x + 1, loc.y))) {
+                loc.x++;
+            } else if (loc.x == 5 && loc.y >= 6 && loc.y <= 10 && !getAgPos(1).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(0).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(4).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(2).equals(new Location(loc.x, loc.y + 1))) {
+                loc.y++;
+            } else if (loc.x == 0 && loc.y == 5 && !getAgPos(1).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(0).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(4).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(2).equals(new Location(loc.x, loc.y + 1))) {
+                loc.y++;
+            } else if (loc.x == 5 && loc.y == 11 && !getAgPos(1).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(0).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(4).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(2).equals(new Location(loc.x + 1, loc.y))) {
+                loc.x++;
+            } else if (loc.x == 6 && loc.y == 7 && lampoff4 && !getAgPos(1).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(0).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(0).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(2).equals(new Location(loc.x, loc.y - 1)) && !getAgPos(1).equals(new Location(7, 5))
+                    && !getAgPos(2).equals(new Location(7, 5)) && !getAgPos(4).equals(new Location(7, 5))
+                    && !getAgPos(1).equals(new Location(5, 4)) && !getAgPos(4).equals(new Location(5, 4))
+                    && !getAgPos(2).equals(new Location(5, 4))) {
+                loc.y--;
+
+            } else if (loc.x == 4 && loc.y == 6 && lampoff1 && !getAgPos(1).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(0).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(4).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(2).equals(new Location(loc.x + 1, loc.y))) {
+                loc.x++;
+
+            } else if (loc.x == 6 && loc.y == 7 && lamp4 && !getAgPos(1).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(0).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(4).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(2).equals(new Location(loc.x, loc.y - 1))) {
+                loc.y--;
+            } else if (loc.x == 4 && loc.y == 6 && lamp1 && !getAgPos(1).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(0).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(4).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(2).equals(new Location(loc.x + 1, loc.y))) {
+                loc.x++;
             }
+
+            setAgPos(3, loc);
         }
-        void burnGarb() {
-            // r2 location has garbage
-            if (model.hasObject(GARB, getAgPos(1))) {
-                remove(GARB, getAgPos(1));
+
+        void moveCar4() {
+            Location loc;
+            loc = getAgPos(4);
+
+            if (loc.y == 6 && loc.x >= 0 && loc.x <= 10 && loc.x != 4
+                    && !getAgPos(0).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(2).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(3).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(1).equals(new Location(loc.x + 1, loc.y))) {
+                loc.x++;
+            } else if (loc.y == 5 && loc.x >= 1 && loc.x <= 11 && loc.x != 7
+                    && !getAgPos(0).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(2).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(3).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(1).equals(new Location(loc.x - 1, loc.y))) {
+                loc.x--;
+            } else if (loc.x == 11 && loc.y == 6 && !getAgPos(0).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(2).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(3).equals(new Location(loc.x, loc.y - 1))
+                    && !getAgPos(1).equals(new Location(loc.x, loc.y - 1))) {
+                loc.y = 5;
+            } else if (loc.x == 0 && loc.y == 5 && !getAgPos(0).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(2).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(3).equals(new Location(loc.x, loc.y + 1))
+                    && !getAgPos(1).equals(new Location(loc.x, loc.y + 1))) {
+                loc.y = 6;
+            } else if (loc.x == 4 && loc.y == 6 && lampoff1 && !getAgPos(0).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(2).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(3).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(1).equals(new Location(loc.x + 1, loc.y)) && !getAgPos(0).equals(new Location(6, 7))
+                    && !getAgPos(2).equals(new Location(6, 7)) && !getAgPos(3).equals(new Location(6, 7))
+                    && !getAgPos(1).equals(new Location(6, 7))) {
+                loc.x++;
+
+            } else if (loc.x == 7 && loc.y == 5 && lampoff3 && !getAgPos(0).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(2).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(3).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(1).equals(new Location(loc.x - 1, loc.y)) && !getAgPos(0).equals(new Location(5, 4))
+                    && !getAgPos(2).equals(new Location(5, 4)) && !getAgPos(3).equals(new Location(5, 4))
+                    && !getAgPos(1).equals(new Location(5, 4))) {
+                loc.x--;
+
+            } else if (loc.y == 6 && loc.x == 4 && lamp1 && !getAgPos(2).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(0).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(3).equals(new Location(loc.x + 1, loc.y))
+                    && !getAgPos(1).equals(new Location(loc.x + 1, loc.y))) {
+                loc.x++;
+            } else if (loc.y == 5 && loc.x == 7 && lamp3 && !getAgPos(2).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(0).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(3).equals(new Location(loc.x - 1, loc.y))
+                    && !getAgPos(1).equals(new Location(loc.x - 1, loc.y))) {
+                loc.x--;
             }
+            setAgPos(4, loc);
         }
+
+        void switchLamp1() {
+            Location loc;
+            loc = getAgPos(5);
+            setAgPos(5, loc);
+        }
+
+        void switchLamp2() {
+            Location loc;
+            loc = getAgPos(6);
+            setAgPos(6, loc);
+        }
+
+        void switchLamp3() {
+            Location loc;
+            loc = getAgPos(7);
+            setAgPos(7, loc);
+        }
+
+        void switchLamp4() {
+            Location loc;
+            loc = getAgPos(8);
+            setAgPos(8, loc);
+        }
+
+        void moveNino() {
+            Location loc;
+            loc = getAgPos(9);
+
+            if (loc.x == 10 && loc.y == 4) {
+                loc.y++;
+                ninoComing();
+            } else if (loc.x <= 10 && loc.x > 6 && loc.y == 5) {
+                loc.x--;
+            } else if (loc.x == 6 && loc.y <= 5 && loc.y > 1) {
+                loc.y--;
+            } else if (loc.x == 6 && loc.y == 1) {
+                loc.x++;
+                ninoArrived();
+            } else if (loc.x == 7 && loc.y == 1) {
+                loc.y--;
+                ninoComing();
+            } else if (loc.y == 0 && (loc.x == 7 || loc.x == 6)) {
+                loc.x--;
+            } else if (loc.x == 5 && loc.y >= 0 && loc.y <= 5) {
+                loc.y++;
+            } else if (loc.x >= 5 && loc.x <= 10 && loc.y == 6) {
+                loc.x++;
+            } else if (loc.x == 11 && (loc.y == 6 || loc.y == 5)) {
+                loc.y--;
+            } else if (loc.x == 11 && loc.y == 4) {
+                loc.x--;
+                ninoArrived();
+            }
+            setAgPos(9, loc);
+        }
+
     }
 
-    class MarsView extends GridWorldView {
+    class CrossView extends GridWorldView {
 
-        public MarsView(MarsModel model) {
-            super(model, "Mars World", 600);
-            defaultFont = new Font("Arial", Font.BOLD, 18); // change default font
+        public CrossView(CrossModel model) {
+            super(model, "Smart Cross", 600);
+            setResizable(false);
             setVisible(true);
             repaint();
         }
@@ -186,38 +509,88 @@ public class MarsEnv extends Environment {
         /** draw application objects */
         @Override
         public void draw(Graphics g, int x, int y, int object) {
-            switch (object) {
-            case MarsEnv.GARB:
-                drawGarb(g, x, y);
-                break;
-            }
+
         }
 
         @Override
         public void drawAgent(Graphics g, int x, int y, Color c, int id) {
-            String label = "R"+(id+1);
-            c = Color.blue;
-            if (id == 0) {
-                c = Color.yellow;
-                if (((MarsModel)model).r1HasGarb) {
-                    label += " - G";
-                    c = Color.orange;
+            String label;
+            switch (id) {
+            case 0:
+                label = "P";
+                c = Color.orange;
+                break;
+            case 1:
+                label = "Car1";
+                c = Color.gray;
+                break;
+            case 2:
+                label = "Car2";
+                c = Color.lightGray;
+                break;
+            case 3:
+                label = "Car3";
+                c = Color.darkGray;
+                break;
+            case 4:
+                label = "Car4";
+                c = Color.black;
+                break;
+            case 5:
+                label = " Lamp";
+                if (lampoff1) {
+                    c = Color.yellow;
+                } else if (lamp1) {
+                    c = Color.green;
+                } else {
+                    c = Color.red;
                 }
-            }
-            super.drawAgent(g, x, y, c, -1);
-            if (id == 0) {
-                g.setColor(Color.black);
-            } else {
-                g.setColor(Color.white);
-            }
-            super.drawString(g, x, y, defaultFont, label);
-            repaint();
-        }
 
-        public void drawGarb(Graphics g, int x, int y) {
-            super.drawObstacle(g, x, y);
+                break;
+            case 6:
+                label = " Lamp";
+                if (lampoff2) {
+                    c = Color.yellow;
+                } else if (lamp2) {
+                    c = Color.green;
+                } else {
+                    c = Color.red;
+                }
+                break;
+            case 7:
+                label = " Lamp";
+                if (lampoff3) {
+                    c = Color.yellow;
+                } else if (lamp3) {
+                    c = Color.green;
+                } else {
+                    c = Color.red;
+                }
+                break;
+            case 8:
+                label = " Lamp";
+                if (lampoff4) {
+                    c = Color.yellow;
+                } else if (lamp4) {
+                    c = Color.green;
+                } else {
+                    c = Color.red;
+                }
+                break;
+            case 9:
+                label = "Nino";
+                c = Color.blue;
+                break;
+
+            default:
+                label = "-";
+                break;
+            }
+
+            super.drawAgent(g, x, y, c, -1);
             g.setColor(Color.white);
-            drawString(g, x, y, defaultFont, "G");
+            super.drawString(g, x, y, defaultFont, label);
+
         }
 
     }
